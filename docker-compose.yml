@@ -1,0 +1,96 @@
+# Версия docker-compose
+version: '2'
+# Список наших сервисов (контейнеров)
+services:
+    # web:
+        # image: php:5.6-apache
+        # links:
+            # - db
+        # ports:
+          # - 80:80
+        # # http://support.divio.com/local-development/docker/how-to-use-a-directory-outside-cusers-with-docker-toolboxdocker-for-windows
+        # volumes:
+          # - /WebServers/home/test1.ru:/var/www
+          # - /WebServers/docker_php5.6_mysql_apache/hosts:/etc/apache2/sites-enabled
+          # # - ./www:/var/www
+          # - /WebServers/docker_php5.6_mysql_apache/logs:/var/log/apache2
+    web:
+        # у нас свой образ для PHP, указываем путь к нему и говорим что его надо собрать
+        build: ./images/php
+        # network_mode: "host"
+        links:
+            - "db:docker_db"
+        ports:
+            - 80:80
+            # - "443:443"
+        # монтируем директорию с проектами
+        volumes:
+          - ../home/test1.ru:/var/www
+          - ./hosts:/etc/apache2/sites-enabled
+          # - ./www:/var/www
+          - ./logs:/var/log/apache2
+        extra_hosts:
+            - "tds.local:127.0.0.1"
+            - "www.tds.local:127.0.0.1"
+            - "tds.test1.ru:127.0.0.1"
+            - "www.tds.test1.ru:127.0.0.1"
+            - "main.test1.ru:127.0.0.1"
+            - "www.main.test1.ru:127.0.0.1"
+    # web:
+        # # у нас свой образ для PHP, указываем путь к нему и говорим что его надо собрать
+        # build: ./images/php
+        # links:
+            # - db
+        # ports:
+            # - "80:80"
+        # # монтируем директорию с проектами
+        # volumes:
+            # - ../home/test1.ru:/var/www
+    #https://github.com/laradock/laradock/issues/1392
+    db:
+        # mysql:5.5 mysql:5.6 mysql:5.7 mysql:8.0 percona:5.5 percona:5.6
+        image: mysql:5.6
+        # network_mode: "host"
+        # ports:
+            # - "3306:3306"
+        volumes:
+            - ./mysql:/var/lib/mysql
+            - ../home/test1.ru:/var/www
+        command: --innodb_use_native_aio=0 --max_allowed_packet=32505856      # Set max_allowed_packet to 256M (or any other value)
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_ROOT_HOST: "%"
+            MYSQL_USER: admin
+            MYSQL_PASSWORD: admin
+    # mysql:
+        # image: mysql
+        # command: --default-authentication-plugin=mysql_native_password
+        # restart: always
+        # environment:
+          # MYSQL_ROOT_PASSWORD: root
+          # MYSQL_ROOT_HOST: "%"
+        # ports:
+          # - 3306:3306
+        # volumes:
+          # - ./docker/resources/mysql:/var/lib/mysql
+    adminer:
+        image: adminer
+        restart: always
+        links:
+            - "db:db"
+        ports:
+            - 8282:8080
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        # container_name: phpmyadmin
+        restart: always
+        volumes:
+            - ./sessions:/sessions
+            - ./phpmyadmin/config.user.inc.php:/etc/phpmyadmin/config.user.inc.php
+        links:
+            - "db:db"
+        ports:
+            - 8383:80
+        environment:
+            PMA_ARBITRARY: 1
+            MYSQL_ROOT_PASSWORD: root
